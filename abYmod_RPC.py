@@ -51,19 +51,17 @@ from time import sleep
 #############################################################################
 
 
-def model_structure(light_chain_identifier,light_chain,heavy_chain):
+def model_structure(antibody_identifier,light_chain,heavy_chain):
     """
     Input: wrapped fasta file
     Output: .pdb file of the paired antibody heavy and light chains
     """
-    antibody_identifier_split = light_chain_identifier.split("|") #get antibody identifier
-    antibody_identifier = antibody_identifier_split[1]
 
     antibody_identifier_name = antibody_identifier.replace("\/", "\|" )
     url          = "http://abymod.abysis.org/"\
                    "abymod_service.cgi"
     build_url    = url + "?" + "light=" + light_chain + "&heavy=" + heavy_chain
-    print(build_url)
+    #print(build_url)
     UID          = request.urlopen(build_url).read() #Enter model to abYmod and get UID
     UID          = str(UID, encoding='utf-8')
     retrieve_url = url + "?" + "pdb=" + UID
@@ -75,11 +73,11 @@ def model_structure(light_chain_identifier,light_chain,heavy_chain):
     retrieve_model  = str(retrieve_model, encoding='utf-8')
     retrieve_log    = request.urlopen(log_url).read()
     retrieve_log    = str(retrieve_log, encoding='utf-8')
-    print(retrieve_model)
+    #print(retrieve_model)
      #Need to keep refreshing page until pbd file is written, need to find suitable loop for the job
     while retrieve_model == "0":
         if retrieve_log != "1":
-            print("constructing model of ", light_chain_identifier, " ...")
+            print("constructing model of ", antibody_identifier, " ...")
             retrieve_model  = request.urlopen(retrieve_url).read() #retreive pbd
             retrieve_model  = str(retrieve_model, encoding='utf-8')
             sleep(10)
@@ -99,7 +97,7 @@ def model_structure(light_chain_identifier,light_chain,heavy_chain):
                 break
 
         else:
-            print("model of ", light_chain_identifier, " could not be constructed")
+            print("model of ", antibody_identifier, " could not be constructed")
 
 
 
@@ -121,7 +119,19 @@ with open(sys.argv[1]) as f:
     for line in f:
         if line[0] == ">" and re.search("L\|", line):
             light_chain_identifier = line.strip()
+            light_chain_check = light_chain_identifier.split("|")[1]
             light_chain = f.readline().strip()
             heavy_chain_identifier = f.readline().strip()
+            heavy_chain_check = heavy_chain_identifier.split("|")[1]
             heavy_chain = f.readline().strip()
-            model_structure(light_chain_identifier, light_chain, heavy_chain)
+            if light_chain_check == heavy_chain_check:
+                model_structure(heavy_chain_check, light_chain, heavy_chain)
+        elif line[0] == ">" and re.search("H\|", line):
+            heavy_chain_identifier = line.strip()
+            heavy_chain_check = heavy_chain_identifier.split("|")[1]
+            heavy_chain = f.readline().strip()
+            light_chain_identifier = f.readline().strip()
+            light_chain_check = light_chain_identifier.split("|")[1]
+            light_chain = f.readline().strip()
+            if light_chain_check == heavy_chain_check:
+                model_structure(light_chain_check, light_chain, heavy_chain)
